@@ -34,6 +34,8 @@
  *
  */
 
+//Testando merge 2
+
 #include  "mips1_isa.H"
 #include  "mips1_isa_init.cpp"
 #include  "mips1_bhv_macros.H"
