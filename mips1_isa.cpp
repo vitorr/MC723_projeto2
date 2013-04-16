@@ -88,7 +88,7 @@ void ac_behavior(begin)
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
-  printf ("teste2 contando addu's: %d\n", count);
+  printf ("teste2 novo - contando addu's: %d\n", count);
   dbg_printf("@@@ end behavior @@@\n");
 }
 
