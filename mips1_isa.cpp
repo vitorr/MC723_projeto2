@@ -1,5 +1,3 @@
-// merge
-
 /**
  * @file      mips1_isa.cpp
  * @author    Sandro Rigo
@@ -35,8 +33,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-
-//Testando merge 2
 
 #include  "mips1_isa.H"
 #include  "mips1_isa_init.cpp"
@@ -90,7 +86,7 @@ void ac_behavior(begin)
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
-  printf ("teste2 novo - contando addu's: %d\n", count);
+  printf ("contando addu's: %d\n", count);
   dbg_printf("@@@ end behavior @@@\n");
 }
 

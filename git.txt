@@ -1,0 +1,4 @@
+Se o "git pull" der problema de merge com algum arquivo:
+git commit [arquivo_a_ser_mergeado]
+git pull //Nesse ponto, ocorrerá o merge das duas versões do arquivo
+git push //Dá push da versão mergeada
