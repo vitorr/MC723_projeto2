@@ -1,3 +1,5 @@
+// merge
+
 /**
  * @file      mips1_isa.cpp
  * @author    Sandro Rigo
