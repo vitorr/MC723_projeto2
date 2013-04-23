@@ -1,8 +1,3 @@
-/*
-
-*/
-
-
 /**
  * @file      mips1_isa.cpp
  * @author    Sandro Rigo
@@ -59,14 +54,22 @@ int count = 0;
 using namespace mips1_parms;
 
 void createContext (int r_dest, int r_read1, int r_read2, InstructionType type) {
-  InstructionContext cont;
 
-  cont.r_dest = r_dest;
-  cont.r_read1 = r_read1;
-  cont.r_read2 = r_read2;
-  cont.type = type;
+  if (currentInstruction.type != UNITIALIZED) {
+	lastInstruction = currentInstruction;
+  }
+  
+  currentInstruction.r_dest = r_dest;
+  currentInstruction.r_read1 = r_read1;
+  currentInstruction.r_read2 = r_read2;
+  currentInstruction.type = type;
+}
 
-  lastInstructions.push_back(cont);
+void verifyHazard () {
+  /*
+  if (lastInstruction.type == MEMORY_READ)
+	if (lastInstruction.r_dest == currentInstruction.r_read1 || lastInstruction.r_dest == currentInstruction.r_read2)
+  */
 }
 
 //!Generic instruction behavior method.
@@ -78,21 +81,49 @@ void ac_behavior( instruction )
   ac_pc = npc;
   npc = ac_pc + 4;
 #endif 
+
 };
  
 //! Instruction Format behavior methods.
 void ac_behavior( Type_R ){
-  printf("Type_R rs: %u\n", rs);
-  printf("Type_R rd: %u\n", rd);
+  if (rd == 0) rd = NOT_USED;
+  
+  createContext (rd, rs, rt, NORMAL_INST);
+  verifyHazard();
 }
-void ac_behavior( Type_I ){
-  printf("Type_I: %u\n", rs);
+
+void ac_behavior( Type_J ){ 
+  createContext (NOT_USED, NOT_USED, NOT_USED, NORMAL_INST);
 }
-void ac_behavior( Type_J ){
-  printf("Type_J: %u\n", 10);
+
+void ac_behavior( Type_I_MEMREAD ){
+  createContext (rt, rs, NOT_USED, MEMORY_READ);
+  verifyHazard();
 }
-void ac_behavior( Type_I2 ){
-  printf("Type_I2\n");
+
+void ac_behavior( Type_I_RR ){
+  createContext (NOT_USED, rs, rt, NORMAL_INST);
+  verifyHazard();
+}
+
+void ac_behavior( Type_I_WR ){
+  createContext (rt, rs, NOT_USED, NORMAL_INST);
+  verifyHazard();
+}
+
+void ac_behavior( Type_I_W ){
+  createContext (rt, NOT_USED, NOT_USED, NORMAL_INST);
+  verifyHazard();
+}
+
+void ac_behavior( Type_I_R ){
+  createContext (NOT_USED, rs, NOT_USED, NORMAL_INST);
+  verifyHazard();
+}
+
+void ac_behavior( Type_I_W31 ){
+  createContext (31, rs, NOT_USED, NORMAL_INST);
+  verifyHazard();
 }
  
 //!Behavior called before starting simulation
@@ -107,6 +138,9 @@ void ac_behavior(begin)
     RB[regNum] = 0;
   hi = 0;
   lo = 0;
+
+  currentInstruction.type = UNITIALIZED;
+
 }
 
 //!Behavior called after finishing simulation

@@ -62,7 +62,12 @@ public:
 
   void _behavior_mips1_Type_R(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void _behavior_mips1_Type_I(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void _behavior_mips1_Type_I2(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_MEMREAD(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_RR(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_WR(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_W(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_R(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_W31(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_J(unsigned int op, unsigned int addr);
 
   void behavior_lb(unsigned int op, unsigned int rs, unsigned int rt, int imm);
@@ -72,19 +77,27 @@ public:
   void behavior_lw(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lwl(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lwr(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_beq(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bne(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sb(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sh(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sw(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_swl(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_swr(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_addi(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_addiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_slti(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sltiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_andi(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_ori(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_xori(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lui(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_addiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bltzal(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bgezal(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_blez(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bgtz(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bltz(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bgez(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_add(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_addu(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_sub(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
@@ -114,14 +127,6 @@ public:
   void behavior_jal(unsigned int op, unsigned int addr);
   void behavior_jr(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_jalr(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
-  void behavior_beq(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bne(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_blez(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bgtz(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bltz(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bgez(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bltzal(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bgezal(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sys_call(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_instr_break(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
 

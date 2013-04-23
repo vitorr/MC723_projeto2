@@ -38,13 +38,33 @@ AC_ISA(mips1){
 
   ac_format Type_R  = "%op:6 %rs:5 %rt:5 %rd:5 %shamt:5 %func:6";
   ac_format Type_I  = "%op:6 %rs:5 %rt:5 %imm:16:s";
-  ac_format Type_I2  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+
+  /* read from rs and memory and write to rt */
+  ac_format Type_I_MEMREAD  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+  
+  /* read from rt and rs */
+  ac_format Type_I_RR  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+  
+  /* read from rs and write to rt */
+  ac_format Type_I_WR  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+  
+  /* write to rt */
+  ac_format Type_I_W   = "%op:6 %rs:5 %rt:5 %imm:16:s";
+
+  /* read from rs */
+  ac_format Type_I_R   = "%op:6 %rs:5 %rt:5 %imm:16:s";
+
+  /* read from rs and write to r31 */
+  ac_format Type_I_W31   = "%op:6 %rs:5 %rt:5 %imm:16:s";
+
   ac_format Type_J  = "%op:6 %addr:26";
 
-  ac_instr<Type_I> lb, lbu, lh, lhu, lw, lwl, lwr;
-  ac_instr<Type_I> sb, sh, sw, swl, swr;
-  ac_instr<Type_I> addi, slti, sltiu, andi, ori, xori, lui;
-  ac_instr<Type_I2> addiu;
+  ac_instr<Type_I_MEMREAD> lb, lbu, lh, lhu, lw, lwl, lwr;
+  ac_instr<Type_I_RR> beq, bne, sb, sh, sw, swl, swr;
+  ac_instr<Type_I_WR> addi, addiu, slti, sltiu, andi, ori, xori;
+  ac_instr<Type_I_W> lui;
+  ac_instr<Type_I_W31> bltzal, bgezal;
+  ac_instr<Type_I_R> blez, bgtz, bltz, bgez;
   ac_instr<Type_R> add, addu, sub, subu, slt, sltu;
   ac_instr<Type_R> instr_and, instr_or, instr_xor, instr_nor;
   ac_instr<Type_R> nop, sll, srl, sra, sllv, srlv, srav;
@@ -52,7 +72,6 @@ AC_ISA(mips1){
   ac_instr<Type_R> mfhi, mthi, mflo, mtlo;
   ac_instr<Type_J> j, jal;
   ac_instr<Type_R> jr, jalr;
-  ac_instr<Type_I> beq, bne, blez, bgtz, bltz, bgez, bltzal, bgezal;
   ac_instr<Type_R> sys_call, instr_break;
 
 

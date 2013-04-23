@@ -3,8 +3,12 @@
 
 #include <vector>
 
+#define NOT_USED -1
+
 typedef enum {
-  type1
+  UNITIALIZED,
+  MEMORY_READ,
+  NORMAL_INST
 } InstructionType;
 
 typedef struct {
@@ -12,7 +16,8 @@ typedef struct {
   InstructionType type;
 } InstructionContext;
 
-std::vector <InstructionContext> lastInstructions;
+InstructionContext lastInstruction;
+InstructionContext currentInstruction;
 
 void createContext (int r_dest, int r_read1, int r_read2, InstructionType type);
 
