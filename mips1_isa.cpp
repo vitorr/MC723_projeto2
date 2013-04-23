@@ -1,3 +1,8 @@
+/*
+
+*/
+
+
 /**
  * @file      mips1_isa.cpp
  * @author    Sandro Rigo
@@ -37,7 +42,7 @@
 #include  "mips1_isa.H"
 #include  "mips1_isa_init.cpp"
 #include  "mips1_bhv_macros.H"
-
+#include  "mc723.h"
 
 //If you want debug information for this model, uncomment next line
 //#define DEBUG_MODEL
@@ -52,6 +57,17 @@ int count = 0;
 // 'using namespace' statement to allow access to all
 // mips1-specific datatypes
 using namespace mips1_parms;
+
+void createContext (int r_dest, int r_read1, int r_read2, InstructionType type) {
+  InstructionContext cont;
+
+  cont.r_dest = r_dest;
+  cont.r_read1 = r_read1;
+  cont.r_read2 = r_read2;
+  cont.type = type;
+
+  lastInstructions.push_back(cont);
+}
 
 //!Generic instruction behavior method.
 void ac_behavior( instruction )
