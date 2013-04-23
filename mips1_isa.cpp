@@ -65,9 +65,19 @@ void ac_behavior( instruction )
 };
  
 //! Instruction Format behavior methods.
-void ac_behavior( Type_R ){}
-void ac_behavior( Type_I ){}
-void ac_behavior( Type_J ){}
+void ac_behavior( Type_R ){
+  printf("Type_R rs: %u\n", rs);
+  printf("Type_R rd: %u\n", rd);
+}
+void ac_behavior( Type_I ){
+  printf("Type_I: %u\n", rs);
+}
+void ac_behavior( Type_J ){
+  printf("Type_J: %u\n", 10);
+}
+void ac_behavior( Type_I2 ){
+  printf("Type_I2\n");
+}
  
 //!Behavior called before starting simulation
 void ac_behavior(begin)

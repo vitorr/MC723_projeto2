@@ -62,6 +62,7 @@ public:
 
   void _behavior_mips1_Type_R(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void _behavior_mips1_Type_I(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I2(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_J(unsigned int op, unsigned int addr);
 
   void behavior_lb(unsigned int op, unsigned int rs, unsigned int rt, int imm);
@@ -77,13 +78,13 @@ public:
   void behavior_swl(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_swr(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_addi(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_addiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_slti(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sltiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_andi(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_ori(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_xori(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lui(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_addiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_add(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_addu(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void behavior_sub(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);

@@ -38,11 +38,13 @@ AC_ISA(mips1){
 
   ac_format Type_R  = "%op:6 %rs:5 %rt:5 %rd:5 %shamt:5 %func:6";
   ac_format Type_I  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+  ac_format Type_I2  = "%op:6 %rs:5 %rt:5 %imm:16:s";
   ac_format Type_J  = "%op:6 %addr:26";
 
   ac_instr<Type_I> lb, lbu, lh, lhu, lw, lwl, lwr;
   ac_instr<Type_I> sb, sh, sw, swl, swr;
-  ac_instr<Type_I> addi, addiu, slti, sltiu, andi, ori, xori, lui;
+  ac_instr<Type_I> addi, slti, sltiu, andi, ori, xori, lui;
+  ac_instr<Type_I2> addiu;
   ac_instr<Type_R> add, addu, sub, subu, slt, sltu;
   ac_instr<Type_R> instr_and, instr_or, instr_xor, instr_nor;
   ac_instr<Type_R> nop, sll, srl, sra, sllv, srlv, srav;
