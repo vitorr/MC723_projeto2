@@ -5,6 +5,8 @@
 
 #define NOT_USED -1
 
+// --------- hazard ------------
+
 typedef enum {
   UNITIALIZED,
   MEMORY_READ,
@@ -20,5 +22,16 @@ InstructionContext lastInstruction;
 InstructionContext currentInstruction;
 
 void createContext (int r_dest, int r_read1, int r_read2, InstructionType type);
+
+// ---------- cache ------------
+
+#define CACHE_SIZE 32
+
+typedef struct {
+    int addr;
+    bool valid;
+} CacheData;
+
+CacheData cache[CACHE_SIZE];
 
 #endif

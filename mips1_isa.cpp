@@ -48,6 +48,7 @@
 #define Ra 31
 #define Sp 29
 int count = 0;
+int hazardCount;
 
 // 'using namespace' statement to allow access to all
 // mips1-specific datatypes
@@ -66,10 +67,9 @@ void createContext (int r_dest, int r_read1, int r_read2, InstructionType type) 
 }
 
 void verifyHazard () {
-  /*
   if (lastInstruction.type == MEMORY_READ)
-	if (lastInstruction.r_dest == currentInstruction.r_read1 || lastInstruction.r_dest == currentInstruction.r_read2)
-  */
+      if (lastInstruction.r_dest == currentInstruction.r_read1 || lastInstruction.r_dest == currentInstruction.r_read2)
+          hazardCount++;
 }
 
 //!Generic instruction behavior method.
@@ -139,14 +139,20 @@ void ac_behavior(begin)
   hi = 0;
   lo = 0;
 
+  // init hazard count
   currentInstruction.type = UNITIALIZED;
+  hazardCount = 0;
 
+  // init cache
+  for (int i = 0; i < CACHE_SIZE; i++) 
+      valid = false;
 }
 
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
   printf ("contando addu's: %d\n", count);
+  printf ("hazard count = %d\n", hazardCount)
   dbg_printf("@@@ end behavior @@@\n");
 }
 
