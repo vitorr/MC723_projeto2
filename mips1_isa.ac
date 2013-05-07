@@ -42,6 +42,9 @@ AC_ISA(mips1){
   /* read from rs and memory and write to rt */
   ac_format Type_I_MEMREAD  = "%op:6 %rs:5 %rt:5 %imm:16:s";
   
+  /* read from rt and rs and write to memory */
+  ac_format Type_I_MEMWRITE  = "%op:6 %rs:5 %rt:5 %imm:16:s";
+
   /* read from rt and rs */
   ac_format Type_I_RR  = "%op:6 %rs:5 %rt:5 %imm:16:s";
   
@@ -60,7 +63,8 @@ AC_ISA(mips1){
   ac_format Type_J  = "%op:6 %addr:26";
 
   ac_instr<Type_I_MEMREAD> lb, lbu, lh, lhu, lw, lwl, lwr;
-  ac_instr<Type_I_RR> beq, bne, sb, sh, sw, swl, swr;
+  ac_instr<Type_I_MEMWRITE> sb, sh, sw, swl, swr; 
+  ac_instr<Type_I_RR> beq, bne;
   ac_instr<Type_I_WR> addi, addiu, slti, sltiu, andi, ori, xori;
   ac_instr<Type_I_W> lui;
   ac_instr<Type_I_W31> bltzal, bgezal;

@@ -3,9 +3,9 @@
 
 #include <vector>
 
-#define NOT_USED -1
-
 // --------- hazard ------------
+
+#define NOT_USED -1
 
 typedef enum {
   UNITIALIZED,
@@ -25,13 +25,17 @@ void createContext (int r_dest, int r_read1, int r_read2, InstructionType type);
 
 // ---------- cache ------------
 
-#define CACHE_SIZE 32
+#define DATA_CACHE_SIZE 32
+#define INSTRUCTION_CACHE_SIZE 32
+#define CACHE_BLOCK_SIZE 1
 
 typedef struct {
     int addr;
     bool valid;
-} CacheData;
+    bool dirty;
+} CacheEntry;
 
-CacheData cache[CACHE_SIZE];
+CacheEntry dataCache[DATA_CACHE_SIZE];
+CacheEntry instructionCache[INSTRUCTION_CACHE_SIZE];
 
 #endif
