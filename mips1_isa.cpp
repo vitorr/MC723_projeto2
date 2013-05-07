@@ -49,6 +49,7 @@
 #define Sp 29
 int count = 0;
 int hazardCount;
+int dataCacheMiss;
 
 // 'using namespace' statement to allow access to all
 // mips1-specific datatypes
@@ -70,6 +71,50 @@ void verifyHazard () {
   if (lastInstruction.type == MEMORY_READ)
       if (lastInstruction.r_dest == currentInstruction.r_read1 || lastInstruction.r_dest == currentInstruction.r_read2)
           hazardCount++;
+}
+
+// Verify if the memory address is in the cache line indicated by cacheBaseAddr
+bool addrInCache (int memAddr, int cacheBaseAddr) {
+    for (int i=0; i<CACHE_BLOCK_SIZE; i++) {
+        if (memAddr == cacheBaseAddr + i*4)
+            return true;
+    }
+
+    return false;
+}
+
+void verifyCacheWrite (int addr) {    
+    int row = addr % DATA_CACHE_SIZE;
+
+    // need to write to memory
+    if (dataCache[row].valid && !addrInCache(addr, dataCache[row].addr)) {
+        dataCacheMiss++;
+    }
+    
+    dataCache[row].addr = addr;
+    dataCache[row].dirty = true;
+}
+
+void verifyCacheRead (int addr) {
+    int row = addr % DATA_CACHE_SIZE;
+
+    // invalid cache: need to read the memory
+    if (!dataCache[row].valid)
+        dataCacheMiss++;
+    
+    else {
+        // 2 misses: 1 for writing the dirty value, other for reading the memory
+        if (dataCache[row].dirty && !addrInCache(addr, dataCache[row].addr))
+            dataCacheMiss += 2; 
+
+        // 1 miss for reading the memory
+        else if (!dataCache[row].dirty && !addrInCache(addr, dataCache[row].addr))
+            dataCacheMiss++;
+    }
+
+    dataCache[row].dirty = false;
+    dataCache[row].valid = true;
+    dataCache[row].addr = addr;
 }
 
 //!Generic instruction behavior method.
@@ -99,6 +144,15 @@ void ac_behavior( Type_J ){
 void ac_behavior( Type_I_MEMREAD ){
   createContext (rt, rs, NOT_USED, MEMORY_READ);
   verifyHazard();
+
+  verifyCacheRead(RB[rs]);
+}
+
+void ac_behavior( Type_I_MEMWRITE ){
+  createContext (NOT_USED, rs, rt, NORMAL_INST);
+  verifyHazard();
+
+  verifyCacheWrite(RB[rs]);
 }
 
 void ac_behavior( Type_I_RR ){
@@ -144,8 +198,13 @@ void ac_behavior(begin)
   hazardCount = 0;
 
   // init cache
-  for (int i = 0; i < CACHE_SIZE; i++) 
-      valid = false;
+  for (int i = 0; i < DATA_CACHE_SIZE; i++) {
+      dataCache[i].valid = false;
+      dataCache[i].dirty = false;
+  }
+
+  for (int i = 0; i < INSTRUCTION_CACHE_SIZE; i++)
+      instructionCache[i].valid = false;
 }
 
 //!Behavior called after finishing simulation
