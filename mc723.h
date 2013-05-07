@@ -25,9 +25,13 @@ void createContext (int r_dest, int r_read1, int r_read2, InstructionType type);
 
 // ---------- cache ------------
 
-#define DATA_CACHE_SIZE 32
+#define DATA_CACHE_SIZE 256
 #define INSTRUCTION_CACHE_SIZE 32
-#define CACHE_BLOCK_SIZE 1
+
+// BLOCK_OFFSET_BITS must be log2(CACHE_BLOCK_SIZE*4)
+
+#define CACHE_BLOCK_SIZE 8
+#define BLOCK_OFFSET_BITS 5
 
 typedef struct {
     int addr;

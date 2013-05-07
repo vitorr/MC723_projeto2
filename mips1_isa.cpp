@@ -50,6 +50,7 @@
 int count = 0;
 int hazardCount;
 int dataCacheMiss;
+int memAccessCount;
 
 // 'using namespace' statement to allow access to all
 // mips1-specific datatypes
@@ -74,47 +75,73 @@ void verifyHazard () {
 }
 
 // Verify if the memory address is in the cache line indicated by cacheBaseAddr
-bool addrInCache (int memAddr, int cacheBaseAddr) {
+bool _addrInCache (int memAddr, int cacheBaseAddr) {
+    if (cacheBaseAddr < 0)
+        return false;
+    
+    //printf("memAddr=%d\n", memAddr);
     for (int i=0; i<CACHE_BLOCK_SIZE; i++) {
-        if (memAddr == cacheBaseAddr + i*4)
+        if (memAddr == cacheBaseAddr + i*4) {
+            //printf("achou endereco: i=%d\n", i);
             return true;
+        }
     }
 
     return false;
 }
 
-void verifyCacheWrite (int addr) {    
-    int row = addr % DATA_CACHE_SIZE;
+bool addrInCache (int memAddr, int cacheBaseAddr) {
+    int cacheTag = (cacheBaseAddr >> BLOCK_OFFSET_BITS);
+    
+    int memTag = (memAddr >> BLOCK_OFFSET_BITS);
+
+    return cacheTag == memTag;
+}
+
+//lembrar dos acessos desalinhados
+
+void verifyCacheWrite (int addr) {                      
+    int row = addr >> BLOCK_OFFSET_BITS;
+    row = addr % DATA_CACHE_SIZE;
+
+    bool inCache = addrInCache(addr, dataCache[row].addr);
 
     // need to write to memory
-    if (dataCache[row].valid && !addrInCache(addr, dataCache[row].addr)) {
+    if (dataCache[row].valid && !inCache) {
         dataCacheMiss++;
     }
+
+    if (!inCache)
+        dataCache[row].addr = addr;
     
-    dataCache[row].addr = addr;
     dataCache[row].dirty = true;
 }
 
 void verifyCacheRead (int addr) {
-    int row = addr % DATA_CACHE_SIZE;
+    int row = addr >> BLOCK_OFFSET_BITS;
+    row = addr % DATA_CACHE_SIZE;
 
+    bool inCache = addrInCache(addr, dataCache[row].addr);
+    
     // invalid cache: need to read the memory
     if (!dataCache[row].valid)
         dataCacheMiss++;
     
     else {
         // 2 misses: 1 for writing the dirty value, other for reading the memory
-        if (dataCache[row].dirty && !addrInCache(addr, dataCache[row].addr))
+        if (dataCache[row].dirty && !inCache)
             dataCacheMiss += 2; 
 
         // 1 miss for reading the memory
-        else if (!dataCache[row].dirty && !addrInCache(addr, dataCache[row].addr))
+        else if (!dataCache[row].dirty && !inCache)
             dataCacheMiss++;
     }
 
     dataCache[row].dirty = false;
     dataCache[row].valid = true;
-    dataCache[row].addr = addr;
+
+    if (!inCache)
+        dataCache[row].addr = addr;
 }
 
 //!Generic instruction behavior method.
@@ -146,6 +173,8 @@ void ac_behavior( Type_I_MEMREAD ){
   verifyHazard();
 
   verifyCacheRead(RB[rs]);
+
+  memAccessCount++;
 }
 
 void ac_behavior( Type_I_MEMWRITE ){
@@ -153,6 +182,8 @@ void ac_behavior( Type_I_MEMWRITE ){
   verifyHazard();
 
   verifyCacheWrite(RB[rs]);
+
+  memAccessCount++;
 }
 
 void ac_behavior( Type_I_RR ){
@@ -201,17 +232,29 @@ void ac_behavior(begin)
   for (int i = 0; i < DATA_CACHE_SIZE; i++) {
       dataCache[i].valid = false;
       dataCache[i].dirty = false;
+      dataCache[i].addr = -1;
   }
 
-  for (int i = 0; i < INSTRUCTION_CACHE_SIZE; i++)
+  for (int i = 0; i < INSTRUCTION_CACHE_SIZE; i++){
       instructionCache[i].valid = false;
+      dataCache[i].addr = -1;
+  }
+  
+  dataCacheMiss = 0;
+  memAccessCount = 0;
 }
 
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
   printf ("contando addu's: %d\n", count);
-  printf ("hazard count = %d\n", hazardCount)
+  printf ("hazard count = %d\n", hazardCount);
+
+  // cache
+  printf ("data cache miss= %d\n", dataCacheMiss);
+  printf ("memory access= %d\n", memAccessCount);
+  printf ("miss/access=%lf\n", (double) dataCacheMiss/ (double) memAccessCount);
+  
   dbg_printf("@@@ end behavior @@@\n");
 }
 

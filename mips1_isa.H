@@ -63,6 +63,7 @@ public:
   void _behavior_mips1_Type_R(unsigned int op, unsigned int rs, unsigned int rt, unsigned int rd, unsigned int shamt, unsigned int func);
   void _behavior_mips1_Type_I(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_I_MEMREAD(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void _behavior_mips1_Type_I_MEMWRITE(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_I_RR(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_I_WR(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void _behavior_mips1_Type_I_W(unsigned int op, unsigned int rs, unsigned int rt, int imm);
@@ -77,13 +78,13 @@ public:
   void behavior_lw(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lwl(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_lwr(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_beq(unsigned int op, unsigned int rs, unsigned int rt, int imm);
-  void behavior_bne(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sb(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sh(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_sw(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_swl(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_swr(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_beq(unsigned int op, unsigned int rs, unsigned int rt, int imm);
+  void behavior_bne(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_addi(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_addiu(unsigned int op, unsigned int rs, unsigned int rt, int imm);
   void behavior_slti(unsigned int op, unsigned int rs, unsigned int rt, int imm);
