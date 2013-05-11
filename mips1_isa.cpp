@@ -47,10 +47,12 @@
 //!User defined macros to reference registers.
 #define Ra 31
 #define Sp 29
-int count = 0;
 int hazardCount;
 int dataCacheMiss;
 int memAccessCount;
+int instructionCacheMiss;
+int instructionCount;
+int unalignedAccess;
 
 // 'using namespace' statement to allow access to all
 // mips1-specific datatypes
@@ -74,86 +76,103 @@ void verifyHazard () {
           hazardCount++;
 }
 
-// Verify if the memory address is in the cache line indicated by cacheBaseAddr
-bool _addrInCache (int memAddr, int cacheBaseAddr) {
-    if (cacheBaseAddr < 0)
-        return false;
-    
-    //printf("memAddr=%d\n", memAddr);
-    for (int i=0; i<CACHE_BLOCK_SIZE; i++) {
-        if (memAddr == cacheBaseAddr + i*4) {
-            //printf("achou endereco: i=%d\n", i);
-            return true;
-        }
-    }
+/*---------------------------- CACHE ---------------------------*/
 
-    return false;
-}
+void verifyCacheWrite (int addr) {
+    int addr_aux = addr >> DATA_BLOCK_OFFSET_SIZE_BITS;
+    int tag = addr_aux >> DATA_CACHE_SIZE_BITS;
+    int row = addr_aux & DATA_ROW_MASK;
 
-bool addrInCache (int memAddr, int cacheBaseAddr) {
-    int cacheTag = (cacheBaseAddr >> BLOCK_OFFSET_BITS);
-    
-    int memTag = (memAddr >> BLOCK_OFFSET_BITS);
-
-    return cacheTag == memTag;
-}
-
-//lembrar dos acessos desalinhados
-
-void verifyCacheWrite (int addr) {                      
-    int row = addr >> BLOCK_OFFSET_BITS;
-    row = addr % DATA_CACHE_SIZE;
-
-    bool inCache = addrInCache(addr, dataCache[row].addr);
-
-    // need to write to memory
-    if (dataCache[row].valid && !inCache) {
+    if (dataCache[row].valid && dataCache[row].tag != tag) {
         dataCacheMiss++;
     }
 
-    if (!inCache)
-        dataCache[row].addr = addr;
-    
+    dataCache[row].tag = tag;
     dataCache[row].dirty = true;
+    
+    //verify unalignment
+    if (addr % 4 != 0) {
+        unalignedAccess++;
+
+        int block_offset = (addr >> BYTE_OFFSET_SIZE_BITS) & DATA_BLOCK_OFFSET_MASK;
+
+        // if the block is the last in cache row and the access is unaligned
+        if (block_offset == DATA_BLOCK_OFFSET_MASK) {
+            // verify the cache write of the next aligned block
+            addr = (addr + 4) - (addr % 4);
+            verifyCacheWrite(addr);
+        }
+    }
 }
 
 void verifyCacheRead (int addr) {
-    int row = addr >> BLOCK_OFFSET_BITS;
-    row = addr % DATA_CACHE_SIZE;
+    int addr_aux = addr >> DATA_BLOCK_OFFSET_SIZE_BITS;
+    int tag = addr_aux >> DATA_CACHE_SIZE_BITS;
+    int row = addr_aux & DATA_ROW_MASK;
 
-    bool inCache = addrInCache(addr, dataCache[row].addr);
-    
-    // invalid cache: need to read the memory
-    if (!dataCache[row].valid)
+    // invalid row in cache: need to read from the memory
+    if (!dataCache[row].valid) {
         dataCacheMiss++;
-    
-    else {
-        // 2 misses: 1 for writing the dirty value, other for reading the memory
-        if (dataCache[row].dirty && !inCache)
-            dataCacheMiss += 2; 
+        
+    } else {
+        // need to replace the value. 2 misses: 1 for writing the dirty value, other for reading the memory        
+        if (dataCache[row].dirty && dataCache[row].tag != tag) {
+            dataCacheMiss += 2;
+        }
 
-        // 1 miss for reading the memory
-        else if (!dataCache[row].dirty && !inCache)
+        // 1 miss for reading from the memory
+        else if (!dataCache[row].dirty && dataCache[row].tag != tag) {
             dataCacheMiss++;
+        }
     }
 
     dataCache[row].dirty = false;
     dataCache[row].valid = true;
+    dataCache[row].tag = tag;
 
-    if (!inCache)
-        dataCache[row].addr = addr;
+    //verify unalignment
+    if (addr % 4 != 0) {
+        unalignedAccess++;
+
+        int block_offset = (addr >> BYTE_OFFSET_SIZE_BITS) & DATA_BLOCK_OFFSET_MASK;
+
+        // if the block is the last in cache row and the access is unaligned
+        if (block_offset == DATA_BLOCK_OFFSET_MASK) {
+            // verify the cache write of the next aligned block
+            addr = (addr + 4) - (addr % 4);
+            verifyCacheRead(addr);
+        }
+    }
 }
+
+void verifyInstructionCache (int addr) {
+    int addr_aux = addr >> INSTRUCTION_BLOCK_OFFSET_SIZE_BITS;
+    int tag = addr_aux >> INSTRUCTION_CACHE_SIZE_BITS;
+    int row = addr_aux & INSTRUCTION_ROW_MASK;
+    
+    // invalid row or diferent tag: need to read from the memory
+    if (!instructionCache[row].valid || instructionCache[row].tag != tag) {
+        instructionCacheMiss++;
+    }
+
+    instructionCache[row].tag = tag;
+    instructionCache[row].valid = true;
+}
+
+/*-------------------------------------------------------*/
 
 //!Generic instruction behavior method.
 void ac_behavior( instruction )
-{ 
+{
   dbg_printf("----- PC=%#x ----- %lld\n", (int) ac_pc, ac_instr_counter);
   //  dbg_printf("----- PC=%#x NPC=%#x ----- %lld\n", (int) ac_pc, (int)npc, ac_instr_counter);
 #ifndef NO_NEED_PC_UPDATE
   ac_pc = npc;
   npc = ac_pc + 4;
-#endif 
+#endif
 
+  verifyInstructionCache((int)ac_pc);
+  instructionCount++;
 };
  
 //! Instruction Format behavior methods.
@@ -232,28 +251,56 @@ void ac_behavior(begin)
   for (int i = 0; i < DATA_CACHE_SIZE; i++) {
       dataCache[i].valid = false;
       dataCache[i].dirty = false;
-      dataCache[i].addr = -1;
+      dataCache[i].tag = -1;
   }
 
   for (int i = 0; i < INSTRUCTION_CACHE_SIZE; i++){
       instructionCache[i].valid = false;
-      dataCache[i].addr = -1;
+      instructionCache[i].tag = -1;
   }
   
   dataCacheMiss = 0;
   memAccessCount = 0;
+  instructionCacheMiss = 0;
+  instructionCount = 0;
+  unalignedAccess++;
+
+  // Branch prediction init
+  alwaysTakenHitCount = 0;
+  alwaysTakenMissCount = 0;
+  neverTakenHitCount = 0;
+  neverTakenMissCount = 0;
+  oneBitHitCount = 0;
+  oneBitMissCount = 0;
+  twoBitHitCount = 0;
+  twoBitMissCount = 0;
 }
 
 //!Behavior called after finishing simulation
 void ac_behavior(end)
 {
-  printf ("contando addu's: %d\n", count);
-  printf ("hazard count = %d\n", hazardCount);
+  printf ("hazard count = %d\n\n", hazardCount);
 
   // cache
   printf ("data cache miss= %d\n", dataCacheMiss);
   printf ("memory access= %d\n", memAccessCount);
-  printf ("miss/access=%lf\n", (double) dataCacheMiss/ (double) memAccessCount);
+  printf ("dataMiss/memAccess=%lf\n\n", (double) dataCacheMiss/ (double) memAccessCount);
+  printf("instructionMiss=%d\n", instructionCacheMiss);
+  printf("instructionCount=%d\n", instructionCount);
+  printf("instructionMiss/instructionCount=%lf\n", (double) instructionCacheMiss/ (double) instructionCount);
+  printf("unalignedAccesses=%d\n", unalignedAccess);
+
+  // bench predictor
+  FILE * fp = fopen("../bench.txt", "a");
+  fprintf(fp, "[K = %d] %llu\t\t%llu\t\t%llu\t\t%llu\n", K, alwaysTakenMissCount, neverTakenMissCount, oneBitMissCount, twoBitMissCount);
+  fclose(fp);
+
+  printf("\n\n*********************** BRANCH PREDICTION ***********************\n");
+  printf("- Always taken: [ %llu ] hits and [ %llu ] misses\n", alwaysTakenHitCount, alwaysTakenMissCount);
+  printf("- Never taken: [ %llu ] hits and [ %llu ] misses\n", neverTakenHitCount, neverTakenMissCount);
+  printf("- One-bit prediction: [ %llu ] hits and [ %llu ] misses\n", oneBitHitCount, oneBitMissCount);
+  printf("- Two-bits prediction: [ %llu ] hits and [ %llu ] misses\n", twoBitHitCount, twoBitMissCount);
+  printf("*****************************************************************\n");
   
   dbg_printf("@@@ end behavior @@@\n");
 }
@@ -496,7 +543,6 @@ void ac_behavior( add )
 //!Instruction addu behavior method.
 void ac_behavior( addu )
 {
-  count++;
   dbg_printf("addu r%d, r%d, r%d\n", rd, rs, rt);
   RB[rd] = RB[rs] + RB[rt];
   //cout << "  RS: " << (unsigned int)RB[rs] << " RT: " << (unsigned int)RB[rt] << endl;
@@ -788,7 +834,90 @@ void ac_behavior( jalr )
   dbg_printf("Return = %#x\n", ac_pc+4);
 };
 
-//!Instruction beq behavior method.
+/*---------------------------- BRANCHS ---------------------------*/
+
+void branchTaken(unsigned int ac_pc, unsigned int jmp_addr) {
+
+  // Always taken hit
+  alwaysTakenHitCount++;
+
+  // One miss for the never taken strategy
+  neverTakenMissCount++;
+
+  // One bit prediction
+  if (oneBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN) {
+    oneBitMissCount++;
+    oneBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN;
+    oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
+  }
+  else if (oneBitPredictor[PRED_INDEX(ac_pc)].jump_to != jmp_addr) {
+    oneBitMissCount++;
+    oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
+  }
+  else {
+    oneBitHitCount++;
+  }
+
+  // Two bit prediction
+  if (twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_0 
+      || twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_1) {
+    twoBitPredictor[PRED_INDEX(ac_pc)].state = 
+      (twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_1 ? NOT_TAKEN_0 : TAKEN_0);
+
+    if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0)
+      twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
+
+    twoBitMissCount++;
+  }
+  else if (twoBitPredictor[PRED_INDEX(ac_pc)].jump_to != jmp_addr) {
+    twoBitMissCount++;
+    twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
+    
+    if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0)
+      twoBitPredictor[PRED_INDEX(ac_pc)].state = NOT_TAKEN_0;
+    else if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_1)
+      twoBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN_0;
+  }
+  else {
+    twoBitHitCount++;
+    twoBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN_1;
+    twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
+  }
+}
+
+void branchNotTaken(unsigned int ac_pc, unsigned int jmp_addr) {
+
+  // One mis for the always taken strategy
+  alwaysTakenMissCount++;
+
+  // Never taken hit
+  neverTakenHitCount++;
+
+  // One bit prediction
+  if (oneBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN) {
+    oneBitMissCount++;
+    oneBitPredictor[PRED_INDEX(ac_pc)].state = NOT_TAKEN;
+    oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = ac_pc + 4;
+  }
+  else {
+    oneBitHitCount++;
+  }
+
+  if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 
+      || twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_1) {
+    twoBitPredictor[PRED_INDEX(ac_pc)].state = 
+      (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 ? NOT_TAKEN_0 : TAKEN_0);
+    twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 ? jmp_addr : ac_pc + 4);
+    twoBitMissCount++;
+  }
+  else {
+    twoBitHitCount++;
+    twoBitPredictor[PRED_INDEX(ac_pc)].state = NOT_TAKEN_1;
+    twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = ac_pc + 4;
+  }
+}
+
+// 1 !Instruction beq behavior method.
 void ac_behavior( beq )
 {
   dbg_printf("beq r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
@@ -797,10 +926,14 @@ void ac_behavior( beq )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+    branchTaken(ac_pc, ac_pc + (imm<<2));
+  }
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction bne behavior method.
+// 2 !Instruction bne behavior method.
 void ac_behavior( bne )
 {	
   dbg_printf("bne r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
@@ -809,10 +942,14 @@ void ac_behavior( bne )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+    branchTaken(ac_pc, ac_pc + (imm<<2));
+  }
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction blez behavior method.
+// 3 !Instruction blez behavior method.
 void ac_behavior( blez )
 {
   dbg_printf("blez r%d, %d\n", rs, imm & 0xFFFF);
@@ -821,10 +958,14 @@ void ac_behavior( blez )
     npc = ac_pc + (imm<<2), 1;
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+    branchTaken(ac_pc, ac_pc + (imm<<2));
   }	
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction bgtz behavior method.
+// 4 !Instruction bgtz behavior method.
 void ac_behavior( bgtz )
 {
   dbg_printf("bgtz r%d, %d\n", rs, imm & 0xFFFF);
@@ -833,10 +974,14 @@ void ac_behavior( bgtz )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+    branchTaken(ac_pc, ac_pc + (imm<<2));
+  }
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction bltz behavior method.
+// 5 !Instruction bltz behavior method.
 void ac_behavior( bltz )
 {
   dbg_printf("bltz r%d, %d\n", rs, imm & 0xFFFF);
@@ -845,10 +990,14 @@ void ac_behavior( bltz )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+    branchTaken(ac_pc, ac_pc + (imm<<2));
   }	
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction bgez behavior method.
+// 7 !Instruction bgez behavior method.
 void ac_behavior( bgez )
 {
   dbg_printf("bgez r%d, %d\n", rs, imm & 0xFFFF);
@@ -857,10 +1006,14 @@ void ac_behavior( bgez )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+    branchTaken(ac_pc, ac_pc + (imm<<2));
   }	
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
 };
 
-//!Instruction bltzal behavior method.
+// 6 !Instruction bltzal behavior method.
 void ac_behavior( bltzal )
 {
   dbg_printf("bltzal r%d, %d\n", rs, imm & 0xFFFF);
@@ -870,11 +1023,15 @@ void ac_behavior( bltzal )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+    branchTaken(ac_pc, ac_pc + (imm<<2));
+  }
+  else {
+    branchNotTaken(ac_pc, ac_pc + (imm<<2));
+  }
   dbg_printf("Return = %#x\n", ac_pc+4);
 };
 
-//!Instruction bgezal behavior method.
+// 8 !Instruction bgezal behavior method.
 void ac_behavior( bgezal )
 {
   dbg_printf("bgezal r%d, %d\n", rs, imm & 0xFFFF);
@@ -884,9 +1041,15 @@ void ac_behavior( bgezal )
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
+    branchTaken(ac_pc, imm << 2);
   }	
+  else {
+    branchNotTaken(ac_pc, imm << 2);
+  }
   dbg_printf("Return = %#x\n", ac_pc+4);
 };
+
+/*-----------------------------------------------------------*/
 
 //!Instruction sys_call behavior method.
 void ac_behavior( sys_call )
