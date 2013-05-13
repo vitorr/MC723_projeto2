@@ -58,14 +58,19 @@ CacheEntry instructionCache[INSTRUCTION_CACHE_SIZE];
 
 /************** Branch Prediction ****************/
 
+// Size of the bits mask to calculate in which block the current instruction is
 #define K 15
+
+// Mask maker
 #define PRED_INDEX(ADDR) ((ADDR >> 2) & ((1 << K) - 1))
 
+// State machine for the one-bit predictor
 enum OneBitState {
   NOT_TAKEN    = 0,
   TAKEN        = 1
 };
 
+// State machine for the two-bits predictor
 enum TwoBitState {
   NOT_TAKEN_1 = 0,
   NOT_TAKEN_0 = 1,
@@ -73,17 +78,13 @@ enum TwoBitState {
   TAKEN_1     = 3
 };
 
-struct AlwaysTakenPredictor {
-  unsigned int jump_to;
-};
-
-typedef AlwaysTakenPredictor NeverTakenPredictor;
-
+// BTB for the one-bit strategy
 struct OneBitPredictor {
   OneBitState state;
   unsigned int jump_to; 
 };
 
+// BTB for the two-bits predictor
 struct TwoBitPredictor {
   TwoBitState state;
   unsigned int jump_to;
