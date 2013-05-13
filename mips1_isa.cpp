@@ -835,7 +835,10 @@ void ac_behavior( jalr )
 };
 
 /*---------------------------- BRANCHS ---------------------------*/
-
+/*
+ * Function called when a branch in taken.
+ * It makes all the necessary computation for the branch predictions penalties.
+ */
 void branchTaken(unsigned int ac_pc, unsigned int jmp_addr) {
 
   // Always taken hit
@@ -844,40 +847,52 @@ void branchTaken(unsigned int ac_pc, unsigned int jmp_addr) {
   // One miss for the never taken strategy
   neverTakenMissCount++;
 
-  // One bit prediction
+  // One bit prediction 
+  // If the prediction is wrong about wether the branch is taken or not
   if (oneBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN) {
     oneBitMissCount++;
     oneBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN;
     oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
   }
+
+  // If the prediction says that the branch will jump to the wrong address
   else if (oneBitPredictor[PRED_INDEX(ac_pc)].jump_to != jmp_addr) {
     oneBitMissCount++;
     oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
   }
+
+  // If the branch prediction is right
   else {
     oneBitHitCount++;
   }
 
   // Two bit prediction
+  // If the branch prediction is wrong about the branch taken
   if (twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_0 
       || twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_1) {
     twoBitPredictor[PRED_INDEX(ac_pc)].state = 
       (twoBitPredictor[PRED_INDEX(ac_pc)].state == NOT_TAKEN_1 ? NOT_TAKEN_0 : TAKEN_0);
 
+    // If it changes to a will-take state, it must update the BTB address
     if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0)
       twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
 
     twoBitMissCount++;
   }
+
+  // If the predictor says that it will jump to the wrong address
   else if (twoBitPredictor[PRED_INDEX(ac_pc)].jump_to != jmp_addr) {
     twoBitMissCount++;
     twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = jmp_addr;
     
+    // Updating states
     if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0)
       twoBitPredictor[PRED_INDEX(ac_pc)].state = NOT_TAKEN_0;
     else if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_1)
       twoBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN_0;
   }
+
+  // If the prediction is right
   else {
     twoBitHitCount++;
     twoBitPredictor[PRED_INDEX(ac_pc)].state = TAKEN_1;
@@ -885,6 +900,10 @@ void branchTaken(unsigned int ac_pc, unsigned int jmp_addr) {
   }
 }
 
+/*
+ * Function called when the branch is not taken.
+ * It makes all the necessary computatation for the branch prediction penalties.
+ */
 void branchNotTaken(unsigned int ac_pc, unsigned int jmp_addr) {
 
   // One mis for the always taken strategy
@@ -894,19 +913,28 @@ void branchNotTaken(unsigned int ac_pc, unsigned int jmp_addr) {
   neverTakenHitCount++;
 
   // One bit prediction
+  // If the predictor is wrong about the taken/not-taken
   if (oneBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN) {
     oneBitMissCount++;
+
+    // Updating state and BTB address
     oneBitPredictor[PRED_INDEX(ac_pc)].state = NOT_TAKEN;
     oneBitPredictor[PRED_INDEX(ac_pc)].jump_to = ac_pc + 4;
   }
+
+  // If it's right
   else {
     oneBitHitCount++;
   }
 
+  // Two-bits predictor
+  // If the prediction is wrong
   if (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 
       || twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_1) {
     twoBitPredictor[PRED_INDEX(ac_pc)].state = 
       (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 ? NOT_TAKEN_0 : TAKEN_0);
+    
+    // Updating BTB address
     twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = (twoBitPredictor[PRED_INDEX(ac_pc)].state == TAKEN_0 ? jmp_addr : ac_pc + 4);
     twoBitMissCount++;
   }
@@ -916,6 +944,12 @@ void branchNotTaken(unsigned int ac_pc, unsigned int jmp_addr) {
     twoBitPredictor[PRED_INDEX(ac_pc)].jump_to = ac_pc + 4;
   }
 }
+
+/*******************************************************
+ * For all the branch instruction, we called the branchTaken() function
+ * when the branch is taken, with the current PC and the offset of the jump
+ * as parameter
+ * *****************************************************/
 
 // 1 !Instruction beq behavior method.
 void ac_behavior( beq )
