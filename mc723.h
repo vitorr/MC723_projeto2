@@ -101,8 +101,6 @@ unsigned long long twoBitHitCount;
 unsigned long long twoBitMissCount;
 
 // States
-NeverTakenPredictor neverTakenPredictor[1 << K];
-AlwaysTakenPredictor alwaysTakenPredictor[1 << K];
 OneBitPredictor oneBitPredictor[1 << K];
 TwoBitPredictor twoBitPredictor[1 << K];
 
