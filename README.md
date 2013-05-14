@@ -2,7 +2,11 @@ MC723_projeto2
 ==============
 
 Para executar, colocar os arquivos Makefile, mc723.h e mips1_*.* dentro
-da pasta do mips. Em seguida, basta executar:
+da pasta do mips. 
+
+Para compilar o simulador, basta executar 'make'.
+
+Em seguida, basta executar:
 
 - make gsm : para executar o simulador usando o executavel gsm do
   MiBench
